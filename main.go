@@ -29,6 +29,8 @@ func main() {
 	router := gin.New()
 
 	router.GET("/heartbeat", gin.WrapF(base.HeartbeatHandler))
+	router.GET("/v1/vessels", handler.GetVessels)
+	router.PUT("/v1/vessels/:imo", handler.UpdateVessel)
 	router.GET("/v1/vessels/:imo", handler.GetVesselByIMO)
 
 	// start serving requests

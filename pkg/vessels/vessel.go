@@ -7,3 +7,10 @@ type Vessel struct {
 	YearBuilt int64  `json:"year_built"`
 	Owner     string `json:"owner"`
 }
+
+type UpdateVessel struct {
+	Name      string `json:"name"`
+	Flag      string `json:"flag"`
+	YearBuilt int64  `json:"year_built"`
+	Owner     string `json:"owner"`
+}
