@@ -3,6 +3,7 @@ package vesselsapi
 import "example.com/vesssels-api/pkg/vessels"
 
 type Store interface {
+	RunInTx(f func(store Store) error) error
 	UpdateVessel(imo int, vessel *vessels.UpdateVessel) error
 	GetVesselByIMO(imo int) (*vessels.Vessel, error)
 	GetVessels() ([]*vessels.Vessel, error)
@@ -24,6 +25,12 @@ func NewInMemoryStore() Store {
 			},
 		},
 	}
+}
+
+// RunInTx runs the given function in a transaction. If the function returns an error, the transaction is rolled back.
+// For in-memory store, this is a no-op.
+func (s *inMemoryStore) RunInTx(f func(store Store) error) error {
+	return f(s)
 }
 
 func (s *inMemoryStore) UpdateVessel(imo int, vessel *vessels.UpdateVessel) error {
