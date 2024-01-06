@@ -7,18 +7,20 @@ import (
 )
 
 type Config struct {
-	API base.Heartbeat
-	Log base.Log
+	API      base.Heartbeat
+	Log      base.Log
+	Postgres base.Postgres
 }
 
 func main() {
 	log := base.GetLogger()
-	log.Info("Hello, world!")
 	defer base.PanicHandler()
 	c := base.GetConfig(&Config{})
 	base.SetupLog(c.Log)
+	db := base.SetupPostgres(c.Postgres)
+	defer db.Close()
 
-	store := vesselsapi.NewInMemoryStore()
+	store := vesselsapi.NewPGStore(db, c.Postgres.SchemaName)
 
 	handler := vesselsapi.Handler{
 		Log:   log,

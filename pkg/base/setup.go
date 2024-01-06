@@ -1,8 +1,11 @@
 package base
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
+
+	_ "github.com/lib/pq" // Import Postgres driver
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
@@ -51,6 +54,23 @@ func SetupLog(c Log) {
 	}
 	log.Infof("Setting log level (level=%s)", lvl)
 	log.SetLevel(lvl)
+}
+
+func SetupPostgres(c Postgres) *sql.DB {
+	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s options=--search_path=%s",
+		c.Host, c.Port, c.User, c.Password, c.DBName, c.SchemaName,
+	)
+	if !c.EnableSSL {
+		connStr += " sslmode=disable"
+	}
+
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		log.Fatal(fmt.Errorf("Unable to connect to Postgres: %w", err))
+	}
+	db.SetMaxIdleConns(4)
+	db.SetMaxOpenConns(25)
+	return db
 }
 
 func HeartbeatHandler(w http.ResponseWriter, r *http.Request) {

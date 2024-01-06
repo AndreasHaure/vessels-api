@@ -1,6 +1,12 @@
 package vesselsapi
 
-import "example.com/vesssels-api/pkg/vessels"
+import (
+	"database/sql"
+	"fmt"
+
+	"example.com/vesssels-api/pkg/vessels"
+	"github.com/pkg/errors"
+)
 
 type Store interface {
 	RunInTx(f func(store Store) error) error
@@ -57,4 +63,106 @@ func (s *inMemoryStore) GetVessels() ([]*vessels.Vessel, error) {
 		vessels = append(vessels, vessel)
 	}
 	return vessels, nil
+}
+
+type querier interface {
+	Exec(query string, args ...interface{}) (sql.Result, error)
+	Query(query string, args ...interface{}) (*sql.Rows, error)
+	QueryRow(query string, args ...interface{}) *sql.Row
+}
+
+type pgStore struct {
+	querier    querier
+	schemaName string
+}
+
+func NewPGStore(db *sql.DB, schemaName string) Store {
+	return &pgStore{
+		querier:    db,
+		schemaName: schemaName,
+	}
+}
+
+// RunInTx wraps the given function in a database transaction.
+// If the function returns an error, the transaction is rolled back, otherwise it is committed.
+func (s *pgStore) RunInTx(f func(store Store) error) error {
+	// type assert querier to db, panic if fails
+	db, ok := s.querier.(*sql.DB)
+	if !ok {
+		panic("Expected querier to be of type *sql.DB")
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	storeWithTx := &pgStore{querier: tx, schemaName: s.schemaName}
+	if err = f(storeWithTx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (s *pgStore) UpdateVessel(imo int, vessel *vessels.UpdateVessel) error {
+	upsertStmt := fmt.Sprintf(`
+		INSERT INTO %[1]s.vessels (imo, name, flag, year_built, owner)
+		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT ON CONSTRAINT vessels_pkey DO UPDATE SET
+			name = $2,
+			flag = $3,
+			year_built = $4,
+			owner = $5`,
+		s.schemaName,
+	)
+
+	if _, err := s.querier.Exec(upsertStmt, imo, vessel.Name, vessel.Flag, vessel.YearBuilt, vessel.Owner); err != nil {
+		return errors.Wrap(err, "unable to update vessel")
+	}
+	return nil
+}
+
+func (s *pgStore) GetVesselByIMO(imo int) (*vessels.Vessel, error) {
+	query := fmt.Sprintf(`
+		SELECT imo, name, flag, year_built, owner
+		FROM %[1]s.vessels
+		WHERE imo = $1`,
+		s.schemaName,
+	)
+
+	row := s.querier.QueryRow(query, imo)
+
+	var vessel vessels.Vessel
+	err := row.Scan(&vessel.IMO, &vessel.Name, &vessel.Flag, &vessel.YearBuilt, &vessel.Owner)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
+		return nil, errors.Wrap(err, "unable to get vessel by imo")
+	}
+	return &vessel, nil
+}
+
+func (s *pgStore) GetVessels() ([]*vessels.Vessel, error) {
+	query := fmt.Sprintf(`
+		SELECT imo, name, flag, year_built, owner
+		FROM %[1]s.vessels`,
+		s.schemaName,
+	)
+
+	result := []*vessels.Vessel{}
+	rows, err := s.querier.Query(query)
+	if err == sql.ErrNoRows {
+		return result, nil
+	} else if err != nil {
+		return nil, errors.Wrap(err, "unable to get vessels")
+	}
+
+	for rows.Next() {
+		var vessel vessels.Vessel
+		err := rows.Scan(&vessel.IMO, &vessel.Name, &vessel.Flag, &vessel.YearBuilt, &vessel.Owner)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to get vessels")
+		}
+		result = append(result, &vessel)
+	}
+	return result, nil
 }
