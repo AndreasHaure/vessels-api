@@ -14,8 +14,12 @@ stop_postgres:
 .PHONY: stop_postgres
 
 test:
-	go test -v ./...
+	go test -v -race ./...
 .PHONY: test
+
+test_integration:
+	go test -v -race -tags=integration ./...
+.PHONY: test_integration
 
 get_deps:
 	go get -t -d ./...
