@@ -36,6 +36,8 @@ run:
 .PHONY: run
 
 # Migration commands
+# Create new migration file using command: `migrate create -ext sql -dir db/migrations -seq <migration_name>`
+
 migrate_version:
 	migrate -source file://$(shell pwd)/$(MIGRATIONS_DIR) -database "postgres://postgres:$${POSTGRES_PASSWORD}@0.0.0.0:5432/postgres?sslmode=disable" version
 .PHONY: migrate_version
@@ -47,3 +49,7 @@ migrate_up:
 migrate_down:
 	migrate -source file://$(shell pwd)/$(MIGRATIONS_DIR) -database "postgres://postgres:$${POSTGRES_PASSWORD}@0.0.0.0:5432/postgres?sslmode=disable" down
 .PHONY: migrate_down
+
+migrate_force:
+	migrate -source file://$(shell pwd)/$(MIGRATIONS_DIR) -database "postgres://postgres:$${POSTGRES_PASSWORD}@localhost:5432/postgres?sslmode=disable" force $(VERSION)
+.PHONY: migrate_force
