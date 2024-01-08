@@ -34,6 +34,7 @@ func main() {
 	router.GET("/v1/vessels", handler.GetVessels)
 	router.PUT("/v1/vessels/:imo", handler.UpdateVessel)
 	router.GET("/v1/vessels/:imo", handler.GetVesselByIMO)
+	router.DELETE("/v1/vessels/:imo", handler.DeleteVessel)
 
 	// start serving requests
 	log.Fatal(router.Run(c.API.Addr))

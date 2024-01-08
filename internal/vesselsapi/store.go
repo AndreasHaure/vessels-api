@@ -172,3 +172,16 @@ func (s *pgStore) GetVessels() ([]*vessels.Vessel, error) {
 	}
 	return result, nil
 }
+
+func (s *pgStore) DeleteVessel(imo int) error {
+	query := fmt.Sprintf(`
+		DELETE FROM %[1]s.vessels
+		WHERE imo = $1`,
+		s.schemaName,
+	)
+
+	if _, err := s.querier.Exec(query, imo); err != nil {
+		return errors.Wrap(err, "unable to delete vessel")
+	}
+	return nil
+}
