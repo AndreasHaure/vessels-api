@@ -55,7 +55,6 @@ func (h *Handler) GetVessels(c *gin.Context) {
 }
 
 func (h *Handler) GetVesselByIMO(c *gin.Context) {
-	h.Log.Info("Here")
 	imo, err := strconv.Atoi(c.Param("imo"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "No valid imo provided"})
@@ -73,4 +72,20 @@ func (h *Handler) GetVesselByIMO(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, vessel)
+}
+
+func (h *Handler) DeleteVessel(c *gin.Context) {
+	imo, err := strconv.Atoi(c.Param("imo"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "No valid imo provided"})
+		return
+	}
+
+	err = h.Store.DeleteVessel(imo)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Unable to delete vessel: %s", err)
+		h.Log.WithError(err).Error(errorMessage)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Vessel deleted"})
 }

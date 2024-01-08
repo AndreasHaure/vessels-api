@@ -13,6 +13,7 @@ type Store interface {
 	UpdateVessel(imo int, vessel *vessels.UpdateVessel) error
 	GetVesselByIMO(imo int) (*vessels.Vessel, error)
 	GetVessels() ([]*vessels.Vessel, error)
+	DeleteVessel(imo int) error
 }
 
 type inMemoryStore struct {
@@ -63,6 +64,11 @@ func (s *inMemoryStore) GetVessels() ([]*vessels.Vessel, error) {
 		vessels = append(vessels, vessel)
 	}
 	return vessels, nil
+}
+
+func (s *inMemoryStore) DeleteVessel(imo int) error {
+	delete(s.data, imo)
+	return nil
 }
 
 type querier interface {
