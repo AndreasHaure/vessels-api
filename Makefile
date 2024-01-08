@@ -1,6 +1,7 @@
 APP ?= vessels-api
 GO_VERSION ?= 1.18
 ENV ?= local
+MIGRATIONS_DIR ?= db/migrations
 
 print-% : ; @echo $($*) ## Print value of a variable (e.g. `make print-APP_VERSION`)
 .PHONY: print-%
@@ -33,3 +34,16 @@ update_deps:
 run:
 	set -o allexport && . "config/$(ENV).env" && go run ./cmd/vesselsapi/main.go
 .PHONY: run
+
+# Migration commands
+migrate_version:
+	migrate -source file://$(shell pwd)/$(MIGRATIONS_DIR) -database "postgres://postgres:$${POSTGRES_PASSWORD}@0.0.0.0:5432/postgres?sslmode=disable" version
+.PHONY: migrate_version
+
+migrate_up:
+	migrate -source file://$(shell pwd)/$(MIGRATIONS_DIR) -database "postgres://postgres:$${POSTGRES_PASSWORD}@0.0.0.0:5432/postgres?sslmode=disable" up
+.PHONY: migrate_up
+
+migrate_down:
+	migrate -source file://$(shell pwd)/$(MIGRATIONS_DIR) -database "postgres://postgres:$${POSTGRES_PASSWORD}@0.0.0.0:5432/postgres?sslmode=disable" down
+.PHONY: migrate_down
